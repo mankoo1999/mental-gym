@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Raster artwork (ic_launcher_brain_art.png); vector XML cannot embed PNG bytes — reference bitmap here. -->
+<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
+    android:gravity="center"
+    android:src="@drawable/ic_launcher_brain_art" />

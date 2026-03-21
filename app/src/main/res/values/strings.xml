@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Mental Gym</string>
+    
+    <!-- Onboarding -->
+    <string name="onboarding_welcome">Welcome to Mental Gym</string>
+    <string name="onboarding_subtitle">Train your brain like you train your body. Maintain cognitive fitness in the AI era.</string>
+    <string name="onboarding_choose_program">Choose Your Commitment Level</string>
+    <string name="onboarding_start">Start Your Cognitive Journey</string>
+    
+    <!-- Programs -->
+    <string name="program_essential">Essential</string>
+    <string name="program_essential_desc">Baseline cognitive fitness for busy people</string>
+    <string name="program_essential_sessions">3 sessions per week</string>
+    
+    <string name="program_standard">Standard</string>
+    <string name="program_standard_desc">Balanced cognitive conditioning</string>
+    <string name="program_standard_sessions">5 sessions per week</string>
+    
+    <string name="program_elite">Elite</string>
+    <string name="program_elite_desc">Advanced cognitive performance</string>
+    <string name="program_elite_sessions">7 sessions per week</string>
+    
+    <!-- Cognitive Systems -->
+    <string name="system_attention">Attention &amp; Focus</string>
+    <string name="system_memory">Working Memory</string>
+    <string name="system_reasoning">Reasoning &amp; Logic</string>
+    <string name="system_flexibility">Cognitive Flexibility</string>
+    <string name="system_speed">Processing Speed</string>
+    <string name="system_memory_systems">Memory Systems</string>
+    <string name="system_creativity">Creative Thinking</string>
+    
+    <!-- Home Screen -->
+    <string name="home_title">Mental Gym</string>
+    <string name="home_todays_workout">Today\'s Workout</string>
+    <string name="home_start_workout">Start Workout</string>
+    <string name="home_rest_day">Rest Day</string>
+    <string name="home_rest_day_message">Recovery is part of training. Your brain is consolidating today\'s learning.</string>
+    <string name="home_this_week">This Week</string>
+    
+    <!-- Workout Screen -->
+    <string name="workout_complete">Workout Complete!</string>
+    <string name="workout_performance">Performance</string>
+    <string name="workout_finish">Finish</string>
+    <string name="workout_instructions">Instructions</string>
+    <string name="workout_start">Start</string>
+    <string name="workout_pause">Pause</string>
+    <string name="workout_skip">Skip to Next</string>
+    
+    <!-- Progress Screen -->
+    <string name="progress_title">Your Progress</string>
+    <string name="progress_overall">Overall Performance</string>
+    <string name="progress_workouts">Workouts</string>
+    <string name="progress_streak">Day Streak</string>
+    <string name="progress_avg_score">Avg Score</string>
+    <string name="progress_weekly">Weekly Activity</string>
+    <string name="progress_systems">Cognitive Systems</string>
+    <string name="progress_recent">Recent Workouts</string>
+    
+    <!-- Common -->
+    <string name="back">Back</string>
+    <string name="settings">Settings</string>
+    <string name="minutes">min</string>
+    <string name="exercises">exercises</string>
+</resources>
