@@ -1,6 +1,10 @@
 package com.mentalgym.app.domain.content
 
-import com.mentalgym.app.domain.model.*
+import com.mentalgym.app.domain.model.CognitiveSystem
+import com.mentalgym.app.domain.model.DayOfWeek
+import com.mentalgym.app.domain.model.Exercise
+import com.mentalgym.app.domain.model.ExerciseInteractionKind
+import com.mentalgym.app.domain.model.WorkoutSession
 
 /**
  * Provides workout content and exercise definitions
@@ -187,29 +191,31 @@ object WorkoutContentProvider {
             id = "sequence_recall",
             name = "Sequence Recall",
             cognitiveSystem = CognitiveSystem.WORKING_MEMORY,
-            description = "Remember and recall number sequences",
+            description = "Digits show for a few seconds, then hide — type them back in order. AI sequences use Groq when a key is set.",
             durationMinutes = 10,
             difficultyLevel = 5,
             instructions = listOf(
-                "View a sequence of numbers",
-                "Wait 10 seconds",
-                "Recall the sequence in order",
-                "Gradually increase sequence length"
-            )
+                "Start the exercise timer first — your drill loads then",
+                "Watch the memorize countdown; digits hide when it hits zero",
+                "Type digits in order with no spaces, then Check answer",
+                "Pause the exercise timer if you need more time before digits hide"
+            ),
+            interactionKind = ExerciseInteractionKind.AI_SEQUENCE_RECALL
         ),
         Exercise(
             id = "mental_math",
             name = "Mental Math",
             cognitiveSystem = CognitiveSystem.WORKING_MEMORY,
-            description = "Solve arithmetic problems without writing",
+            description = "Solve arithmetic problems without writing. With a Groq key, the app generates problems for your level and checks your answer.",
             durationMinutes = 10,
             difficultyLevel = 6,
             instructions = listOf(
-                "Solve multi-step math problems mentally",
-                "Start with 2-digit addition/subtraction",
-                "Progress to multiplication and division",
-                "Track accuracy and speed"
-            )
+                "A new problem appears below — solve it mentally or jot on paper",
+                "Difficulty follows the exercise level; tap New problem anytime",
+                "Use Check answer for feedback (AI when a key is set, otherwise simple local check)",
+                "Use the timer to pace yourself"
+            ),
+            interactionKind = ExerciseInteractionKind.AI_ARITHMETIC
         )
     )
     
@@ -218,29 +224,31 @@ object WorkoutContentProvider {
             id = "logic_puzzles",
             name = "Logic Puzzles",
             cognitiveSystem = CognitiveSystem.REASONING_LOGIC,
-            description = "Solve structured logic problems",
+            description = "Short logic prompts with a brief answer. AI creates new puzzles when a Groq key is set.",
             durationMinutes = 15,
             difficultyLevel = 6,
             instructions = listOf(
-                "Read the puzzle scenario carefully",
-                "Identify the logical constraints",
-                "Use deductive reasoning to solve",
-                "Verify your solution"
-            )
+                "Read the prompt in the practice panel",
+                "Answer in a word or short phrase",
+                "Check answer for feedback; New challenge for another",
+                "Use notes below the timer if you prefer pen and paper"
+            ),
+            interactionKind = ExerciseInteractionKind.AI_LOGIC_SHORT
         ),
         Exercise(
             id = "pattern_analysis",
             name = "Pattern Analysis",
             cognitiveSystem = CognitiveSystem.REASONING_LOGIC,
-            description = "Identify patterns and predict next elements",
+            description = "Spot the rule and name the next term. AI varies patterns when online.",
             durationMinutes = 10,
             difficultyLevel = 5,
             instructions = listOf(
-                "Observe the pattern sequence",
-                "Identify the underlying rule",
-                "Predict the next 3 elements",
-                "Test your hypothesis"
-            )
+                "Study the visible series",
+                "Type the next term (or short phrase if words)",
+                "Check answer; try New challenge for more",
+                "Timer is optional pacing"
+            ),
+            interactionKind = ExerciseInteractionKind.AI_PATTERN
         )
     )
     
@@ -249,29 +257,31 @@ object WorkoutContentProvider {
             id = "perspective_switching",
             name = "Perspective Switching",
             cognitiveSystem = CognitiveSystem.COGNITIVE_FLEXIBILITY,
-            description = "View problems from multiple angles",
+            description = "The app suggests a concrete claim; you argue multiple sides in writing with optional AI coaching.",
             durationMinutes = 10,
             difficultyLevel = 5,
             instructions = listOf(
-                "Read a controversial statement",
-                "Argue for the position (3 minutes)",
-                "Argue against the position (3 minutes)",
-                "Find a third perspective (4 minutes)"
-            )
+                "Start the timer — your topic appears in Live practice",
+                "Write a short case for it, then against it, then a third angle",
+                "Coach feedback uses Groq when a key is set",
+                "Timer helps you allocate time across viewpoints"
+            ),
+            interactionKind = ExerciseInteractionKind.AI_TEXT_COACH
         ),
         Exercise(
             id = "category_switching",
             name = "Category Switching",
             cognitiveSystem = CognitiveSystem.COGNITIVE_FLEXIBILITY,
-            description = "Rapidly switch between classification systems",
+            description = "Practice switching rules — reflect in text; AI can comment on your notes.",
             durationMinutes = 10,
             difficultyLevel = 6,
             instructions = listOf(
-                "View objects one at a time",
-                "Categorize by color, then shape, then size",
-                "Switch categories every 10 seconds",
-                "Increase switching speed"
-            )
+                "Start the timer — example objects appear in Live practice",
+                "Describe how you’d re-sort them under different rules (color, use, size…)",
+                "Coach feedback if you use a Groq key",
+                "Speed up switches across rounds"
+            ),
+            interactionKind = ExerciseInteractionKind.AI_TEXT_COACH
         )
     )
     
@@ -280,15 +290,17 @@ object WorkoutContentProvider {
             id = "memory_palace",
             name = "Memory Palace",
             cognitiveSystem = CognitiveSystem.MEMORY_SYSTEMS,
-            description = "Create spatial memory associations",
+            description = "Trains long-term memory using the method of loci: you link items to a familiar path so you can replay them in order. " +
+                "This block is not about ‘computer memory’ — it’s the mental skill of structured recall.",
             durationMinutes = 15,
             difficultyLevel = 7,
             instructions = listOf(
-                "Choose a familiar location",
-                "Place 10 items mentally in the space",
-                "Walk through mentally and recall items",
-                "Test recall after 1 hour"
-            )
+                "Start the timer — Live practice gives a sample list and the palace steps",
+                "Pick a real route you know well (home, campus, metro line)",
+                "Place one exaggerated image per stop, in order",
+                "Type your path briefly; optional Groq coach for clarity"
+            ),
+            interactionKind = ExerciseInteractionKind.AI_TEXT_COACH
         ),
         Exercise(
             id = "spaced_repetition",
@@ -311,29 +323,31 @@ object WorkoutContentProvider {
             id = "idea_generation",
             name = "Rapid Idea Generation",
             cognitiveSystem = CognitiveSystem.CREATIVE_THINKING,
-            description = "Brainstorm many ideas on a fixed prompt. Use our suggestions or your own topic — both are fine.",
+            description = "A concrete brainstorming topic is assigned; list many ideas with optional AI coaching.",
             durationMinutes = 10,
             difficultyLevel = 4,
             instructions = listOf(
-                "Pick a topic: use one of these, or your own — \"ways to reduce screen time\", \"uses for a paperclip\", \"improvements to your commute\", \"gifts under \$20\"",
-                "Start the timer below when you begin; it applies only to this exercise (the next block gets its own timer)",
-                "List ideas in the optional notes field or on paper — the app does not score creativity yet",
-                "Aim for quantity first; you judge quality using the reflection at the end of the workout"
-            )
+                "Start the timer — your topic appears in Live practice",
+                "List freely in the panel (quantity first)",
+                "Tap Coach feedback if you use Groq",
+                "Reflect on quality at the end of the workout"
+            ),
+            interactionKind = ExerciseInteractionKind.AI_TEXT_COACH
         ),
         Exercise(
             id = "analogy_creation",
             name = "Analogy Creation",
             cognitiveSystem = CognitiveSystem.CREATIVE_THINKING,
-            description = "Link two domains with a metaphor. Suggested pairs are optional; free choice works too.",
+            description = "Two concepts are suggested; bridge them with a metaphor and optional AI feedback.",
             durationMinutes = 10,
             difficultyLevel = 6,
             instructions = listOf(
-                "Pick two concepts: try \"electricity ↔ water\", \"company ↔ garden\", \"brain ↔ city\", or any two unrelated things you care about",
-                "Start the timer when you begin; it resets for each exercise in this workout",
-                "Find several similarities, then write one metaphor (optional notes or paper)",
-                "Explain it aloud or briefly in notes — you verify your own clarity for now"
-            )
+                "Start the timer — concept pair appears in Live practice",
+                "Note similarities, then one metaphor in the panel",
+                "Coach feedback (Groq) can sharpen the comparison",
+                "Timer keeps the block focused"
+            ),
+            interactionKind = ExerciseInteractionKind.AI_TEXT_COACH
         )
     )
 
@@ -342,15 +356,16 @@ object WorkoutContentProvider {
             id = "rapid_naming",
             name = "Rapid Naming",
             cognitiveSystem = CognitiveSystem.PROCESSING_SPEED,
-            description = "Name items in a category as fast as you can — trains fluent retrieval under mild time pressure.",
+            description = "List items in an AI-picked category (often India-themed); get feedback on your list when online.",
             durationMinutes = 8,
             difficultyLevel = 5,
             instructions = listOf(
-                "Choose a category (e.g. fruits, countries, tools, mammals, or movies)",
-                "Start the timer and list items aloud or in the optional notes field — speed matters more than perfect spelling",
-                "When time is up, count how many you produced (honest self-count is enough for now)",
-                "Optional: repeat with a harder category or a 3-minute sprint"
-            )
+                "Start the timer first — then the category appears",
+                "Type a comma- or line-separated list; speed beats spelling",
+                "Tap Check for AI comments (or offline item count)",
+                "New challenge picks another category"
+            ),
+            interactionKind = ExerciseInteractionKind.AI_CATEGORY_SPRINT
         )
     )
     
@@ -359,15 +374,16 @@ object WorkoutContentProvider {
             id = "complex_problem",
             name = "Complex Problem Solving",
             cognitiveSystem = CognitiveSystem.REASONING_LOGIC,
-            description = "Solve one challenging multi-step problem",
+            description = "Outline a real problem and steps; optional AI coach on your plan.",
             durationMinutes = 30,
             difficultyLevel = 8,
             instructions = listOf(
-                "Choose a complex real-world problem",
-                "Break it into sub-problems",
-                "Solve each systematically",
-                "Integrate solutions"
-            )
+                "Start the timer — a scenario appears in Live practice (or use your own)",
+                "Break it into sub-problems and draft a solution path in the panel",
+                "Coach feedback (Groq) can stress-test gaps",
+                "Iterate after feedback"
+            ),
+            interactionKind = ExerciseInteractionKind.AI_TEXT_COACH
         )
     )
 }

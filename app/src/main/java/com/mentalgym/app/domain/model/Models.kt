@@ -64,6 +64,23 @@ enum class TrainingProgram(
 }
 
 /**
+ * How the workout screen interacts for this exercise.
+ * Weekly plans stay fixed from [com.mentalgym.app.domain.content.WorkoutContentProvider]; Groq is used only during these exercise types when a key is set.
+ */
+@Parcelize
+enum class ExerciseInteractionKind : Parcelable {
+    OPEN_PRACTICE,
+
+    AI_ARITHMETIC,
+    AI_SEQUENCE_RECALL,
+    AI_LOGIC_SHORT,
+    AI_PATTERN,
+    AI_CATEGORY_SPRINT,
+    /** User writes freely; model gives coaching feedback only (no single correct answer). */
+    AI_TEXT_COACH
+}
+
+/**
  * Represents a single cognitive exercise
  */
 @Parcelize
@@ -74,7 +91,8 @@ data class Exercise(
     val description: String,
     val durationMinutes: Int,
     val difficultyLevel: Int, // 1-10
-    val instructions: List<String>
+    val instructions: List<String>,
+    val interactionKind: ExerciseInteractionKind = ExerciseInteractionKind.OPEN_PRACTICE
 ) : Parcelable
 
 /**

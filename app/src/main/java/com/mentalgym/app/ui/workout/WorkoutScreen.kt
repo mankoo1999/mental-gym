@@ -7,27 +7,53 @@ import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.mentalgym.app.domain.model.Exercise
+import com.mentalgym.app.domain.model.ExerciseInteractionKind
 import com.mentalgym.app.domain.model.WorkoutSession
+import com.mentalgym.app.domain.model.usesInteractivePanel
 import com.mentalgym.app.ui.theme.*
 import kotlinx.coroutines.delay
 
@@ -35,6 +61,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun WorkoutScreen(
     workout: WorkoutSession,
+    workoutExerciseViewModel: WorkoutExerciseViewModel = hiltViewModel(),
     onComplete: (Int) -> Unit = {},
     onBack: () -> Unit = {}
 ) {
@@ -101,6 +128,7 @@ fun WorkoutScreen(
             } else if (currentExercise != null) {
                 ExerciseView(
                     exercise = currentExercise,
+                    workoutExerciseViewModel = workoutExerciseViewModel,
                     onComplete = {
                         if (currentExerciseIndex < workout.exercises.size - 1) {
                             currentExerciseIndex++
@@ -117,12 +145,26 @@ fun WorkoutScreen(
 @Composable
 private fun ExerciseView(
     exercise: Exercise,
+    workoutExerciseViewModel: WorkoutExerciseViewModel,
     onComplete: () -> Unit
 ) {
+    LaunchedEffect(exercise.id) {
+        workoutExerciseViewModel.resetInteractiveUi()
+    }
+
+    val interactiveUi by workoutExerciseViewModel.interactiveUi.collectAsState()
+
     var timeRemaining by remember(exercise.id) {
         mutableIntStateOf(exercise.durationMinutes * 60)
     }
     var isTimerRunning by remember(exercise.id) { mutableStateOf(false) }
+    var timerPrimed by remember(exercise.id) { mutableStateOf(false) }
+    LaunchedEffect(isTimerRunning, exercise.id) {
+        if (exercise.interactionKind.usesInteractivePanel() && isTimerRunning && !timerPrimed) {
+            timerPrimed = true
+            workoutExerciseViewModel.loadInteractiveChallenge(exercise)
+        }
+    }
     var practiceNotes by remember(exercise.id) { mutableStateOf("") }
     var checkedSteps by remember(exercise.id) { mutableStateOf(setOf<Int>()) }
 
@@ -140,6 +182,7 @@ private fun ExerciseView(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .imePadding()
             .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
         Column(
@@ -238,65 +281,108 @@ private fun ExerciseView(
                 }
             }
 
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        "How this works",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        "Open-ended drills are not auto-graded. Use checkboxes for steps you attempted, " +
-                            "notes for your ideas, and an honest self-rating after the workout. " +
-                            "Later, a backend can store this and optional AI feedback.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        "Steps",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                    exercise.instructions.forEachIndexed { index, instruction ->
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.Top,
-                            modifier = Modifier.padding(vertical = 4.dp)
+            when {
+                exercise.interactionKind.usesInteractivePanel() -> {
+                    val showLivePanel = isTimerRunning ||
+                        interactiveUi.loading ||
+                        interactiveUi.challenge != null ||
+                        interactiveUi.error != null
+                    if (!showLivePanel) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                            )
                         ) {
-                            Checkbox(
-                                checked = checkedSteps.contains(index),
-                                onCheckedChange = { on ->
-                                    checkedSteps =
-                                        if (on) checkedSteps + index else checkedSteps - index
-                                }
+                            Column(
+                                modifier = Modifier.padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    "Live practice",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "Start the exercise timer above first. Your drill loads then (memory sequences " +
+                                        "use a short memorize countdown tied to that timer).",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    } else {
+                        InteractiveExercisePanel(
+                            exercise = exercise,
+                            interactiveUi = interactiveUi,
+                            workoutExerciseViewModel = workoutExerciseViewModel,
+                            isTimerRunning = isTimerRunning
+                        )
+                    }
+                }
+                else -> {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(
+                                "How this works",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
                             )
                             Text(
-                                instruction,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f)
+                                "Open-ended drills are not auto-graded. Use checkboxes for steps you attempted, " +
+                                    "notes for your ideas, and an honest self-rating after the workout. " +
+                                    "Later, a backend can store this and optional AI feedback.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                "Steps",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                            exercise.instructions.forEachIndexed { index, instruction ->
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.Top,
+                                    modifier = Modifier.padding(vertical = 4.dp)
+                                ) {
+                                    Checkbox(
+                                        checked = checkedSteps.contains(index),
+                                        onCheckedChange = { on ->
+                                            checkedSteps =
+                                                if (on) checkedSteps + index else checkedSteps - index
+                                        }
+                                    )
+                                    Text(
+                                        instruction,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                            OutlinedTextField(
+                                value = practiceNotes,
+                                onValueChange = { practiceNotes = it },
+                                modifier = Modifier.fillMaxWidth(),
+                                label = { Text("Practice notes (optional)") },
+                                placeholder = {
+                                    Text("Ideas, counts, or reflections — stays on this device for now")
+                                },
+                                minLines = 3,
+                                maxLines = 8
                             )
                         }
                     }
-                    OutlinedTextField(
-                        value = practiceNotes,
-                        onValueChange = { practiceNotes = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = { Text("Practice notes (optional)") },
-                        placeholder = {
-                            Text("Ideas, counts, or reflections — stays on this device for now")
-                        },
-                        minLines = 3,
-                        maxLines = 8
-                    )
                 }
             }
         }
@@ -314,6 +400,218 @@ private fun ExerciseView(
                 modifier = Modifier.padding(vertical = 8.dp),
                 fontWeight = FontWeight.Bold
             )
+        }
+    }
+}
+
+@Composable
+private fun InteractiveExercisePanel(
+    exercise: Exercise,
+    interactiveUi: InteractiveExerciseUiState,
+    workoutExerciseViewModel: WorkoutExerciseViewModel,
+    isTimerRunning: Boolean
+) {
+    val submitLabel = when (exercise.interactionKind) {
+        ExerciseInteractionKind.AI_TEXT_COACH -> "Coach feedback"
+        ExerciseInteractionKind.AI_CATEGORY_SPRINT -> "Check list"
+        else -> "Check answer"
+    }
+    val showNewChallenge = exercise.interactionKind != ExerciseInteractionKind.AI_TEXT_COACH
+
+    val ch = interactiveUi.challenge
+    val useMemorizePhase =
+        exercise.interactionKind == ExerciseInteractionKind.AI_SEQUENCE_RECALL &&
+            ch != null && ch.memorizeSeconds > 0 && ch.recallPrompt != null
+    val memKey =
+        if (useMemorizePhase && ch != null) "${ch.expectedTextKey}_${ch.memorizeSeconds}_${ch.body.length}" else ""
+
+    var inRecallPhase by remember(memKey) { mutableStateOf(!useMemorizePhase) }
+    var secLeft by remember(memKey) { mutableIntStateOf(ch?.memorizeSeconds ?: 0) }
+    val timerRunningNow = rememberUpdatedState(isTimerRunning)
+
+    LaunchedEffect(memKey) {
+        val snap = workoutExerciseViewModel.interactiveUi.value.challenge
+        val active =
+            exercise.interactionKind == ExerciseInteractionKind.AI_SEQUENCE_RECALL &&
+                snap != null && snap.memorizeSeconds > 0 && snap.recallPrompt != null &&
+                memKey.isNotEmpty()
+        if (!active) {
+            inRecallPhase = true
+            return@LaunchedEffect
+        }
+        val challengeSnap = snap ?: return@LaunchedEffect
+        val total = challengeSnap.memorizeSeconds
+        inRecallPhase = false
+        secLeft = total
+        while (secLeft > 0) {
+            delay(1000)
+            if (timerRunningNow.value) secLeft--
+        }
+        inRecallPhase = true
+    }
+
+    val canInteract =
+        isTimerRunning && !interactiveUi.loading && !interactiveUi.evalLoading &&
+            (!useMemorizePhase || inRecallPhase)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                "Live practice",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "Weekly plans stay fixed. Generation uses openai/gpt-oss-120b on Groq; short checks use gpt-oss-20b " +
+                    "(Settings → API key). Offline fallbacks still work.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (!isTimerRunning) {
+                Text(
+                    "Timer paused — resume the exercise timer to type, submit, or start a new challenge.",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = Warning
+                )
+            }
+            interactiveUi.error?.let { msg ->
+                Text(
+                    msg,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+                TextButton(
+                    onClick = { workoutExerciseViewModel.loadInteractiveChallenge(exercise) },
+                    enabled = isTimerRunning && !interactiveUi.loading
+                ) {
+                    Text("Retry")
+                }
+            }
+            if (interactiveUi.loading) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.padding(16.dp),
+                        color = NeuralPurple
+                    )
+                }
+            } else {
+                val challenge = interactiveUi.challenge
+                Text(
+                    challenge?.title ?: "…",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                if (useMemorizePhase && !inRecallPhase) {
+                    Text(
+                        challenge?.body ?: "",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        "Memorize… hides in ${secLeft}s (pauses if you pause the exercise timer)",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = NeuralPurple
+                    )
+                } else {
+                    Text(
+                        if (useMemorizePhase && challenge?.recallPrompt != null) {
+                            challenge.recallPrompt
+                        } else {
+                            challenge?.body ?: ""
+                        },
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+            OutlinedTextField(
+                value = interactiveUi.userInput,
+                onValueChange = { workoutExerciseViewModel.updateUserInput(it) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (interactiveUi.challenge?.multilineInput == true) {
+                            Modifier.heightIn(min = 120.dp, max = 320.dp)
+                        } else {
+                            Modifier
+                        }
+                    ),
+                label = {
+                    Text(
+                        if (interactiveUi.challenge?.multilineInput == true) "Your response"
+                        else "Your answer"
+                    )
+                },
+                singleLine = interactiveUi.challenge?.multilineInput != true,
+                minLines = if (interactiveUi.challenge?.multilineInput == true) 3 else 1,
+                maxLines = if (interactiveUi.challenge?.multilineInput == true) 18 else 1,
+                enabled = canInteract && interactiveUi.error == null,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Button(
+                    onClick = { workoutExerciseViewModel.submitInteractive(exercise) },
+                    enabled = interactiveUi.userInput.isNotBlank() &&
+                        canInteract && interactiveUi.challenge != null && interactiveUi.error == null,
+                    colors = ButtonDefaults.buttonColors(containerColor = NeuralPurple)
+                ) {
+                    Text(submitLabel)
+                }
+                if (showNewChallenge) {
+                    TextButton(
+                        onClick = { workoutExerciseViewModel.loadInteractiveChallenge(exercise) },
+                        enabled = isTimerRunning && !interactiveUi.loading && !interactiveUi.evalLoading
+                    ) {
+                        Text("New challenge")
+                    }
+                }
+            }
+            if (interactiveUi.evalLoading) {
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .clip(RoundedCornerShape(2.dp)),
+                    color = NeuralPurple
+                )
+            }
+            interactiveUi.evaluation?.let { ev ->
+                val tint = when {
+                    ev.correct == true -> Success
+                    ev.correct == false -> MaterialTheme.colorScheme.error
+                    else -> NeuralPurple
+                }
+                Text(
+                    ev.feedback,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = tint
+                )
+                Text(
+                    if (ev.usedAi) "Coach: AI (gpt-oss-20b)" else "Coach: offline",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -364,7 +662,8 @@ private fun WorkoutCompleteScreen(
         )
 
         Text(
-            "How hard did you push and how focused were you? Adjust the slider — there is no automated grading yet.",
+            "How hard did you push and how focused were you? Adjust the slider — structured drills may have been graded " +
+                "in-session; this score is still your overall honest check-in.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 12.dp, start = 8.dp, end = 8.dp)

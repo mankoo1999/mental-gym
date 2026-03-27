@@ -8,10 +8,8 @@ import com.mentalgym.app.data.local.entity.WorkoutCompletionEntity
 import com.mentalgym.app.domain.model.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -85,5 +83,21 @@ class WorkoutRepository @Inject constructor(
     fun getRecentCompletions(days: Int): Flow<List<WorkoutCompletionEntity>> {
         val startDate = System.currentTimeMillis() - (days * 24 * 60 * 60 * 1000L)
         return workoutCompletionDao.getCompletionsSince(startDate)
+    }
+
+    suspend fun clearAllLocalData() {
+        workoutCompletionDao.deleteAll()
+        exerciseProgressDao.deleteAll()
+        userPreferencesDao.deleteAll()
+    }
+
+    /** Any workout completed during this local calendar day counts as done for daily reminder purposes. */
+    suspend fun hasWorkoutCompletedOnLocalDate(
+        date: LocalDate,
+        zone: ZoneId = ZoneId.systemDefault()
+    ): Boolean {
+        val start = date.atStartOfDay(zone).toInstant().toEpochMilli()
+        val endExclusive = date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+        return workoutCompletionDao.countCompletionsInRange(start, endExclusive) > 0
     }
 }

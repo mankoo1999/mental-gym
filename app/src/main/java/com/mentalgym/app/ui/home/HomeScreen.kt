@@ -34,22 +34,35 @@ import com.mentalgym.app.ui.theme.*
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onStartWorkout: (WorkoutSession) -> Unit = {},
-    onNavigateToProgress: () -> Unit = {}
+    onNavigateToProgress: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    
-    if (!uiState.isOnboarded && !uiState.isLoading) {
-        OnboardingScreen(
-            onProgramSelected = { program ->
-                viewModel.completeOnboarding(program)
+
+    when {
+        uiState.isLoading -> {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
             }
-        )
-    } else {
-        HomeContent(
-            uiState = uiState,
-            onStartWorkout = onStartWorkout,
-            onNavigateToProgress = onNavigateToProgress
-        )
+        }
+        !uiState.isOnboarded -> {
+            OnboardingScreen(
+                onProgramSelected = { program ->
+                    viewModel.completeOnboarding(program)
+                }
+            )
+        }
+        else -> {
+            HomeContent(
+                uiState = uiState,
+                onStartWorkout = onStartWorkout,
+                onNavigateToProgress = onNavigateToProgress,
+                onNavigateToSettings = onNavigateToSettings
+            )
+        }
     }
 }
 
@@ -57,12 +70,14 @@ fun HomeScreen(
 private fun HomeContent(
     uiState: HomeUiState,
     onStartWorkout: (WorkoutSession) -> Unit,
-    onNavigateToProgress: () -> Unit
+    onNavigateToProgress: () -> Unit,
+    onNavigateToSettings: () -> Unit
 ) {
     Scaffold(
         topBar = {
             HomeTopBar(
                 streak = uiState.currentStreak,
+                onSettingsClick = onNavigateToSettings,
                 onProgressClick = onNavigateToProgress
             )
         }
@@ -110,6 +125,7 @@ private fun HomeContent(
 @Composable
 private fun HomeTopBar(
     streak: Int,
+    onSettingsClick: () -> Unit,
     onProgressClick: () -> Unit
 ) {
     TopAppBar(
@@ -177,6 +193,9 @@ private fun HomeTopBar(
                 }
             }
             
+            IconButton(onClick = onSettingsClick) {
+                Icon(Icons.Default.Settings, "Settings")
+            }
             IconButton(onClick = onProgressClick) {
                 Icon(Icons.Default.BarChart, "Progress")
             }

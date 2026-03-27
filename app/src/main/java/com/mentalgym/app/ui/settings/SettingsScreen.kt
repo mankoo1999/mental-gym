@@ -1,31 +1,98 @@
 package com.mentalgym.app.ui.settings
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Switch
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.NotificationsActive
+import androidx.compose.material.icons.filled.PrivacyTip
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import com.mentalgym.app.domain.model.TrainingProgram
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.runtime.collectAsState
+import androidx.core.content.ContextCompat
+import com.mentalgym.app.data.preferences.AppPreferencesRepository
 import com.mentalgym.app.ui.components.ProgramChangeDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    currentProgram: TrainingProgram = TrainingProgram.STANDARD,
-    onProgramChanged: (TrainingProgram) -> Unit = {},
-    onClearData: () -> Unit = {},
+    viewModel: SettingsViewModel = hiltViewModel(),
     onBack: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val currentProgram by viewModel.trainingProgram.collectAsState()
+    val savedGroqKey by viewModel.groqApiKey.collectAsState()
+    val dailyReminderEnabled by viewModel.dailyReminderEnabled.collectAsState()
+    val dailyReminderTime by viewModel.dailyReminderTime.collectAsState()
+    var groqDraft by remember(savedGroqKey) { mutableStateOf(savedGroqKey) }
+    var passwordVisible by remember { mutableStateOf(false) }
+
     var showProgramDialog by remember { mutableStateOf(false) }
     var showClearDataDialog by remember { mutableStateOf(false) }
-    
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            viewModel.setDailyReminderEnabled(true)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -62,7 +129,7 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             item {
                 SettingsCard(
                     title = "Training Program",
@@ -71,11 +138,191 @@ fun SettingsScreen(
                     onClick = { showProgramDialog = true }
                 )
             }
-            
+
             item {
                 Divider(modifier = Modifier.padding(vertical = 8.dp))
             }
-            
+
+            item {
+                Text(
+                    "Reminders",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    Icons.Default.NotificationsActive,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                                Column {
+                                    Text(
+                                        "Daily workout nudge",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        "6:30 or 7:00 PM if today is a training day and you have not finished a workout",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Switch(
+                                checked = dailyReminderEnabled,
+                                onCheckedChange = { wantOn ->
+                                    if (wantOn) {
+                                        if (Build.VERSION.SDK_INT >= 33) {
+                                            when {
+                                                ContextCompat.checkSelfPermission(
+                                                    context,
+                                                    Manifest.permission.POST_NOTIFICATIONS
+                                                ) == PackageManager.PERMISSION_GRANTED -> {
+                                                    viewModel.setDailyReminderEnabled(true)
+                                                }
+                                                else -> notificationPermissionLauncher.launch(
+                                                    Manifest.permission.POST_NOTIFICATIONS
+                                                )
+                                            }
+                                        } else {
+                                            viewModel.setDailyReminderEnabled(true)
+                                        }
+                                    } else {
+                                        viewModel.setDailyReminderEnabled(false)
+                                    }
+                                }
+                            )
+                        }
+
+                        Text(
+                            "Time",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = dailyReminderTime == AppPreferencesRepository.REMINDER_TIME_630,
+                                onClick = {
+                                    viewModel.setDailyReminderTime(
+                                        AppPreferencesRepository.REMINDER_TIME_630
+                                    )
+                                },
+                                label = { Text("6:30 PM") }
+                            )
+                            FilterChip(
+                                selected = dailyReminderTime == AppPreferencesRepository.REMINDER_TIME_700,
+                                onClick = {
+                                    viewModel.setDailyReminderTime(
+                                        AppPreferencesRepository.REMINDER_TIME_700
+                                    )
+                                },
+                                label = { Text("7:00 PM") }
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                Divider(modifier = Modifier.padding(vertical = 8.dp))
+            }
+
+            item {
+                Text(
+                    "AI weekly plan (optional)",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            item {
+                Text(
+                    "Weekly workout plans are always built in. If you add a Groq API key, in-session drills " +
+                        "(math, sequences, logic, patterns, naming lists, writing coach) use openai/gpt-oss-120b for generation " +
+                        "and gpt-oss-20b for quick checks; each exercise still has an offline fallback. " +
+                        "Your key stays on this device.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            item {
+                OutlinedTextField(
+                    value = groqDraft,
+                    onValueChange = { groqDraft = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Groq API key") },
+                    singleLine = true,
+                    visualTransformation = if (passwordVisible) {
+                        VisualTransformation.None
+                    } else {
+                        PasswordVisualTransformation()
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    trailingIcon = {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(
+                                if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                if (passwordVisible) "Hide key" else "Show key"
+                            )
+                        }
+                    }
+                )
+            }
+
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = { viewModel.saveGroqApiKey(groqDraft) },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Save key")
+                    }
+                    TextButton(
+                        onClick = {
+                            viewModel.clearGroqApiKey()
+                            groqDraft = ""
+                        }
+                    ) {
+                        Text("Remove")
+                    }
+                }
+            }
+
+            item {
+                Divider(modifier = Modifier.padding(vertical = 8.dp))
+            }
+
             item {
                 Text(
                     "About",
@@ -84,7 +331,7 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             item {
                 SettingsCard(
                     title = "Version",
@@ -93,7 +340,7 @@ fun SettingsScreen(
                     onClick = {}
                 )
             }
-            
+
             item {
                 SettingsCard(
                     title = "Privacy Policy",
@@ -102,7 +349,7 @@ fun SettingsScreen(
                     onClick = {}
                 )
             }
-            
+
             item {
                 SettingsCard(
                     title = "Terms of Service",
@@ -111,11 +358,11 @@ fun SettingsScreen(
                     onClick = {}
                 )
             }
-            
+
             item {
                 Divider(modifier = Modifier.padding(vertical = 8.dp))
             }
-            
+
             item {
                 Text(
                     "Data",
@@ -124,36 +371,34 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             item {
                 SettingsCard(
                     title = "Clear All Data",
-                    subtitle = "Delete all workouts and progress",
+                    subtitle = "Delete all workouts, progress, and settings",
                     icon = Icons.Default.DeleteForever,
                     iconTint = MaterialTheme.colorScheme.error,
                     onClick = { showClearDataDialog = true }
                 )
             }
-            
+
             item {
                 Spacer(modifier = Modifier.height(20.dp))
             }
         }
     }
-    
-    // Program selection dialog
+
     if (showProgramDialog) {
         ProgramChangeDialog(
             currentProgram = currentProgram,
             onDismiss = { showProgramDialog = false },
             onProgramSelected = { program ->
-                onProgramChanged(program)
+                viewModel.setTrainingProgram(program)
                 showProgramDialog = false
             }
         )
     }
-    
-    // Clear data confirmation dialog
+
     if (showClearDataDialog) {
         AlertDialog(
             onDismissRequest = { showClearDataDialog = false },
@@ -166,12 +411,13 @@ fun SettingsScreen(
             },
             title = { Text("Clear All Data?") },
             text = {
-                Text("This will permanently delete all your workouts, progress, and settings. This action cannot be undone.")
+                Text("This will permanently delete your workouts, progress, saved program, and Groq key on this device. This cannot be undone.")
             },
             confirmButton = {
                 TextButton(
                     onClick = {
-                        onClearData()
+                        viewModel.clearAllData()
+                        groqDraft = ""
                         showClearDataDialog = false
                     },
                     colors = ButtonDefaults.textButtonColors(
@@ -220,7 +466,7 @@ private fun SettingsCard(
                 tint = iconTint,
                 modifier = Modifier.size(24.dp)
             )
-            
+
             Column(
                 modifier = Modifier.weight(1f)
             ) {
@@ -235,7 +481,7 @@ private fun SettingsCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             Icon(
                 Icons.Default.ChevronRight,
                 contentDescription = null,

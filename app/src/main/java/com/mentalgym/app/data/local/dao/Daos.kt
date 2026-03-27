@@ -22,6 +22,11 @@ interface WorkoutCompletionDao {
     
     @Query("DELETE FROM workout_completions")
     suspend fun deleteAll()
+
+    @Query(
+        "SELECT COUNT(*) FROM workout_completions WHERE completedDate >= :startInclusive AND completedDate < :endExclusive"
+    )
+    suspend fun countCompletionsInRange(startInclusive: Long, endExclusive: Long): Int
 }
 
 @Dao
@@ -40,6 +45,9 @@ interface UserPreferencesDao {
     
     @Query("UPDATE user_preferences SET selectedProgram = :program WHERE id = 1")
     suspend fun updateProgram(program: String)
+
+    @Query("DELETE FROM user_preferences")
+    suspend fun deleteAll()
 }
 
 @Dao
@@ -55,4 +63,7 @@ interface ExerciseProgressDao {
     
     @Update
     suspend fun updateProgress(progress: ExerciseProgressEntity)
+
+    @Query("DELETE FROM exercise_progress")
+    suspend fun deleteAll()
 }

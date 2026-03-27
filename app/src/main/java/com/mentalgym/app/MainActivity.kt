@@ -23,6 +23,7 @@ import com.mentalgym.app.ui.home.HomeScreen
 import com.mentalgym.app.ui.library.WorkoutLibraryScreen
 import com.mentalgym.app.ui.navigation.Screen
 import com.mentalgym.app.ui.progress.ProgressScreen
+import com.mentalgym.app.ui.settings.SettingsScreen
 import com.mentalgym.app.ui.theme.MentalGymTheme
 import com.mentalgym.app.domain.model.WorkoutSession
 import com.mentalgym.app.ui.workout.WorkoutScreen
@@ -64,7 +65,16 @@ fun MentalGymApp() {
                 },
                 onNavigateToProgress = {
                     navController.navigate(Screen.Progress.route)
+                },
+                onNavigateToSettings = {
+                    navController.navigate(Screen.Settings.route)
                 }
+            )
+        }
+
+        composable(Screen.Settings.route) {
+            SettingsScreen(
+                onBack = { navController.popBackStack() }
             )
         }
         
