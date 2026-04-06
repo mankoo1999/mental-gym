@@ -3,6 +3,13 @@ package com.mentalgym.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.lifecycle.lifecycleScope
+import com.mentalgym.app.data.preferences.AppPreferencesRepository
+import com.mentalgym.app.reminder.DailyWorkoutReminderScheduler
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,10 +34,13 @@ import com.mentalgym.app.ui.settings.SettingsScreen
 import com.mentalgym.app.ui.theme.MentalGymTheme
 import com.mentalgym.app.domain.model.WorkoutSession
 import com.mentalgym.app.ui.workout.WorkoutScreen
-import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var appPreferencesRepository: AppPreferencesRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -41,6 +51,17 @@ class MainActivity : ComponentActivity() {
                 ) {
                     MentalGymApp()
                 }
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        lifecycleScope.launch {
+            runCatching {
+                val enabled = appPreferencesRepository.dailyReminderEnabled.first()
+                val time = appPreferencesRepository.dailyReminderTime.first()
+                DailyWorkoutReminderScheduler.sync(this@MainActivity, enabled, time)
             }
         }
     }

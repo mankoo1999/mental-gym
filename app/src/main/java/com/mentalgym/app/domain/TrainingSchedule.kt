@@ -37,4 +37,11 @@ object TrainingSchedule {
         )
         TrainingProgram.ELITE -> DayOfWeek.entries.toSet()
     }
+
+    /** Short label for settings copy; must stay aligned with [expectedDays]. */
+    fun trainingDaysSummary(program: TrainingProgram): String = when (program) {
+        TrainingProgram.ESSENTIAL -> "Mon, Wed, Sat"
+        TrainingProgram.STANDARD -> "Mon–Fri"
+        TrainingProgram.ELITE -> "every day"
+    }
 }

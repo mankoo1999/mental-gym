@@ -1,13 +1,16 @@
 package com.mentalgym.app.reminder
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.mentalgym.app.MainActivity
 import com.mentalgym.app.R
 
@@ -30,8 +33,19 @@ object WorkoutReminderNotifications {
     }
 
     fun showPendingWorkoutReminder(context: Context) {
-        ensureChannel(context)
         val appContext = context.applicationContext
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(
+                appContext,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        if (!NotificationManagerCompat.from(appContext).areNotificationsEnabled()) {
+            return
+        }
+        ensureChannel(context)
         val openApp = Intent(appContext, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }

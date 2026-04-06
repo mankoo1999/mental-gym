@@ -45,6 +45,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -53,6 +55,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,9 +67,12 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.compose.runtime.collectAsState
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.mentalgym.app.data.preferences.AppPreferencesRepository
+import com.mentalgym.app.domain.TrainingSchedule
 import com.mentalgym.app.ui.components.ProgramChangeDialog
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,16 +90,34 @@ fun SettingsScreen(
 
     var showProgramDialog by remember { mutableStateOf(false) }
     var showClearDataDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
             viewModel.setDailyReminderEnabled(true)
+        } else {
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    "Allow notifications in system settings to use reminders."
+                )
+            }
         }
     }
 
+    val notificationsAllowedForReminders = when {
+        Build.VERSION.SDK_INT >= 33 ->
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        else -> true
+    } && NotificationManagerCompat.from(context).areNotificationsEnabled()
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -186,7 +210,11 @@ fun SettingsScreen(
                                         fontWeight = FontWeight.Medium
                                     )
                                     Text(
-                                        "6:30 or 7:00 PM if today is a training day and you have not finished a workout",
+                                        buildString {
+                                            append("Training days for your program: ")
+                                            append(TrainingSchedule.trainingDaysSummary(currentProgram))
+                                            append(". At your selected time below if you have not finished a workout that day.")
+                                        },
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -215,6 +243,14 @@ fun SettingsScreen(
                                         viewModel.setDailyReminderEnabled(false)
                                     }
                                 }
+                            )
+                        }
+
+                        if (dailyReminderEnabled && !notificationsAllowedForReminders) {
+                            Text(
+                                "Notifications are off for this app. Turn them on in system settings or the reminder will not appear.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
                             )
                         }
 
