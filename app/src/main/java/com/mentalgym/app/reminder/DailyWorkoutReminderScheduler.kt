@@ -32,14 +32,11 @@ object DailyWorkoutReminderScheduler {
         val appContext = context.applicationContext
         cancel(appContext)
         if (!enabled) return
-        runCatching {
-            val (hour, minute) = parseTime(timeKey)
-            val triggerAtMillis = nextReminderMillis(hour, minute, ZoneId.systemDefault())
-            val pi = alarmPendingIntent(appContext)
-            val am = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            val clock = AlarmManager.AlarmClockInfo(triggerAtMillis, pi)
-            am.setAlarmClock(clock, pi)
-        }
+        val (hour, minute) = parseTime(timeKey)
+        val triggerAtMillis = nextReminderMillis(hour, minute, ZoneId.systemDefault())
+        val pi = alarmPendingIntent(appContext)
+        val am = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        am.setAlarmClock(AlarmManager.AlarmClockInfo(triggerAtMillis, pi), pi)
     }
 
     internal fun parseTime(timeKey: String): Pair<Int, Int> =

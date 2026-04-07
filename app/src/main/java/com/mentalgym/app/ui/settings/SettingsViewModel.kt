@@ -8,6 +8,7 @@ import com.mentalgym.app.data.repository.WorkoutRepository
 import com.mentalgym.app.domain.model.TrainingProgram
 import com.mentalgym.app.domain.model.toTrainingProgramOrDefault
 import com.mentalgym.app.reminder.DailyWorkoutReminderScheduler
+import com.mentalgym.app.reminder.WorkoutReminderNotifications
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.SharingStarted
@@ -75,6 +76,10 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             workoutRepository.setUserProgram(program)
         }
+    }
+
+    fun sendTestNotification() {
+        WorkoutReminderNotifications.showPendingWorkoutReminder(appContext)
     }
 
     fun clearAllData() {

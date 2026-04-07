@@ -5,10 +5,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.lifecycle.lifecycleScope
 import com.mentalgym.app.data.preferences.AppPreferencesRepository
+import com.mentalgym.app.data.repository.WorkoutRepository
+import com.mentalgym.app.domain.TrainingSchedule
+import com.mentalgym.app.domain.model.toTrainingProgramOrDefault
 import com.mentalgym.app.reminder.DailyWorkoutReminderScheduler
+import com.mentalgym.app.reminder.WorkoutReminderNotifications
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.LocalTime
 import javax.inject.Inject
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -38,8 +44,8 @@ import com.mentalgym.app.ui.workout.WorkoutScreen
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
-    @Inject
-    lateinit var appPreferencesRepository: AppPreferencesRepository
+    @Inject lateinit var appPreferencesRepository: AppPreferencesRepository
+    @Inject lateinit var workoutRepository: WorkoutRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,11 +64,24 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         lifecycleScope.launch {
-            runCatching {
-                val enabled = appPreferencesRepository.dailyReminderEnabled.first()
-                val time = appPreferencesRepository.dailyReminderTime.first()
-                DailyWorkoutReminderScheduler.sync(this@MainActivity, enabled, time)
-            }
+            val enabled = appPreferencesRepository.dailyReminderEnabled.first()
+            val timeKey = appPreferencesRepository.dailyReminderTime.first()
+            DailyWorkoutReminderScheduler.sync(this@MainActivity, enabled, timeKey)
+
+            if (!enabled) return@launch
+            val entity = workoutRepository.userPreferences.first() ?: return@launch
+            if (!entity.onboardingCompleted) return@launch
+
+            val (hour, minute) = DailyWorkoutReminderScheduler.parseTime(timeKey)
+            val now = LocalTime.now()
+            if (now.isBefore(LocalTime.of(hour, minute))) return@launch
+
+            val today = LocalDate.now()
+            val program = entity.selectedProgram.toTrainingProgramOrDefault()
+            if (!TrainingSchedule.isScheduledTrainingDay(program, today)) return@launch
+            if (workoutRepository.hasWorkoutCompletedOnLocalDate(today)) return@launch
+
+            WorkoutReminderNotifications.showPendingWorkoutReminder(this@MainActivity)
         }
     }
 }

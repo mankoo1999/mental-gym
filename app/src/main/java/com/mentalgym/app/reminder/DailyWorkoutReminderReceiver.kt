@@ -37,8 +37,7 @@ class DailyWorkoutReminderReceiver : BroadcastReceiver() {
                 val today = LocalDate.now()
                 if (!TrainingSchedule.isScheduledTrainingDay(program, today)) return@launch
 
-                val alreadyDone = workoutRepo.hasWorkoutCompletedOnLocalDate(today)
-                if (!alreadyDone) {
+                if (!workoutRepo.hasWorkoutCompletedOnLocalDate(today)) {
                     WorkoutReminderNotifications.showPendingWorkoutReminder(appContext)
                 }
             } finally {
@@ -51,8 +50,7 @@ class DailyWorkoutReminderReceiver : BroadcastReceiver() {
                     val enabled = prefsRepo.dailyReminderEnabled.first()
                     val timeKey = prefsRepo.dailyReminderTime.first()
                     DailyWorkoutReminderScheduler.sync(appContext, enabled, timeKey)
-                } catch (_: Exception) {
-                }
+                } catch (_: Exception) {}
                 pendingResult.finish()
             }
         }

@@ -281,6 +281,19 @@ fun SettingsScreen(
                                 label = { Text("7:00 PM") }
                             )
                         }
+
+                        TextButton(
+                            onClick = {
+                                viewModel.sendTestNotification()
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        "Test notification sent — check your notification shade."
+                                    )
+                                }
+                            }
+                        ) {
+                            Text("Send test notification")
+                        }
                     }
                 }
             }

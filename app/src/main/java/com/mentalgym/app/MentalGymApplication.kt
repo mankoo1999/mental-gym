@@ -19,16 +19,14 @@ class MentalGymApplication : Application() {
         super.onCreate()
         WorkoutReminderNotifications.ensureChannel(this)
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
-            runCatching {
-                val entryPoint = EntryPointAccessors.fromApplication(
-                    applicationContext,
-                    ReminderReceiverEntryPoint::class.java
-                )
-                val prefs = entryPoint.appPreferencesRepository()
-                val enabled = prefs.dailyReminderEnabled.first()
-                val time = prefs.dailyReminderTime.first()
-                DailyWorkoutReminderScheduler.sync(applicationContext, enabled, time)
-            }
+            val entryPoint = EntryPointAccessors.fromApplication(
+                applicationContext,
+                ReminderReceiverEntryPoint::class.java
+            )
+            val prefs = entryPoint.appPreferencesRepository()
+            val enabled = prefs.dailyReminderEnabled.first()
+            val time = prefs.dailyReminderTime.first()
+            DailyWorkoutReminderScheduler.sync(applicationContext, enabled, time)
         }
     }
 }
